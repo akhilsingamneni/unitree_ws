@@ -1,0 +1,82 @@
+import sys
+import os
+import errno
+import ctypes
+import struct
+import time
+import threading
+
+from .future import Future
+from .timerfd import *
+
+class Thread(Future):
+    def __init__(self, target = None, name = None, args = (), kwargs = None):
+        super().__init__()
+        self.__target = target
+        self.__args = args
+        self.__kwargs = {} if kwargs is None else kwargs
+        self.__thread = threading.Thread(target=self.__ThreadFunc, name=name, daemon=True)
+
+    def Start(self):
+        return self.__thread.start()
+    
+    def GetId(self):
+        return self.__thread.ident
+    
+    def GetNativeId(self):
+        return self.__thread.native_id
+
+    def __ThreadFunc(self):
+        value = None
+        try:
+            value = self.__target(*self.__args, **self.__kwargs)
+            self.Ready(value)
+        except:
+            info = sys.exc_info() 
+            self.Fail(f"[Thread] target func raise exception: name={info[0].__name__}, args={str(info[1].args)}")
+
+class RecurrentThread(Thread):
+    def __init__(self, interval: float = 1.0, target = None, name = None, args = (), kwargs = None):
+        self.__quit = False
+        self.__inter = interval
+        self.__loopTarget = target
+        self.__loopArgs = args
+        self.__loopKwargs = {} if kwargs is None else kwargs
+
+        if interval is None or interval <= 0.0:
+            super().__init__(target=self.__LoopFunc_0, name=name)
+        else:
+            super().__init__(target=self.__LoopFunc, name=name)
+
+    def Wait(self, timeout: float = None):
+        self.__quit = True
+        super().Wait(timeout)
+
+    def __LoopFunc(self):
+        # Portable fixed-rate loop (macOS has no timerfd_create syscall).
+        # Keeps pace with time.sleep() and corrects for drift each cycle,
+        # instead of the original Linux timerfd wait.
+        next_time = time.monotonic()
+
+        while not self.__quit:
+            try:
+                self.__loopTarget(*self.__loopArgs, **self.__loopKwargs)
+            except:
+                info = sys.exc_info()
+                print(f"[RecurrentThread] target func raise exception: name={info[0].__name__}, args={str(info[1].args)}")
+
+            next_time += self.__inter
+            sleep_time = next_time - time.monotonic()
+            if sleep_time > 0:
+                time.sleep(sleep_time)
+            else:
+                # fell behind schedule; resync instead of spinning to catch up
+                next_time = time.monotonic()
+
+    def __LoopFunc_0(self):
+        while not self.__quit:
+            try:
+                self.__loopTarget(*self.__args, **self.__kwargs)
+            except:
+                info = sys.exc_info() 
+                print(f"[RecurrentThread] target func raise exception: name={info[0].__name__}, args={str(info[1].args)}")

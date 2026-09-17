@@ -1,4 +1,5 @@
 import mujoco
+import glfw
 import numpy as np
 import pygame
 import sys
@@ -419,7 +420,6 @@ class ElasticBand:
         return f
 
     def MujuocoKeyCallback(self, key):
-        glfw = mujoco.glfw.glfw
         if key == glfw.KEY_7:
             self.length -= 0.1
         if key == glfw.KEY_8:

@@ -1,0 +1,20 @@
+absl-py==2.5.0
+click==8.5.0
+cyclonedds==0.10.2
+etils==1.13.0
+fsspec==2026.7.0
+glfw==2.10.2
+importlib_resources==7.1.0
+markdown-it-py==4.2.0
+mdurl==0.1.2
+mujoco==3.13.0
+numpy==2.2.6
+opencv-python==5.0.0.93
+pygame==2.6.1
+Pygments==2.21.0
+PyOpenGL==3.1.10
+rich==15.0.0
+rich-click==1.9.9
+typing_extensions==4.16.0
+-e git+https://github.com/akhilsingamneni/unitree_ws.git@e134dfbb30f0e23eaf55cd3076804b67b1be5701#egg=unitree_sdk2py&subdirectory=unitree_sdk2_python
+zipp==4.1.0
